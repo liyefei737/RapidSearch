@@ -51,8 +51,8 @@ def search_table():
 				heappop(min_heap)
 				heappush(min_heap, [word_count_dict[word], word])		
 				heapify(min_heap)
-	copy_heap = list(min_heap)
-	sorted(copy_heap)
+	copy_heap = sorted(list(min_heap))
+
 	print min_heap
 	top_twenty = "<table id='top_twenty'>"
 	for count, w in reversed(copy_heap):
