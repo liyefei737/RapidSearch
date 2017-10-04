@@ -40,7 +40,7 @@ def search_table():
 
 
 	#Construct the occurence table
-	occurence_table = "<table id='search_string_occurence'> <tr><th>Word</th> <th><Count</th></tr>"
+	occurence_table = "<table id='search_string_occurence'> <tr><th>Word</th><th><Count</th></tr>"
 	for word in occurence_dict:
 		occurence_table += "<tr> <td>" + word + "</td> <td>" + str(occurence_dict[word]) + "<td> </tr>"
 	occurence_table += "</table>"
@@ -76,7 +76,7 @@ def search_table():
 	copy_heap = sorted(list(min_heap))
 
 	#construct html to return
-	top_twenty = "<table id='top_twenty'> <tr><th>Word</th> <th><Count</th></tr>"
+	top_twenty = "<h4> Top 20 Search Words </h4><table id='top_twenty'> <tr><th>Word</th><th><Count</th></tr>"
 	for count, w in reversed(copy_heap):
 		top_twenty += "<tr> <td>" + w + "</td> <td>" + str(count) + "<td> </tr>"
 	top_twenty += "</table>"

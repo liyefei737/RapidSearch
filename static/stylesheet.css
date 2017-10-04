@@ -17,3 +17,7 @@ form {
 form input[type="text"] {
 	flex: 1;
 }
+
+th {
+	width: 50px;
+}
