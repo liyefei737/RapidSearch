@@ -1,0 +1,19 @@
+.logo {
+	margin: auto;
+	top: 275px;
+}
+div {
+	position: fixed;
+  	top: 50%;
+  	left: 50%;
+  	/* bring your own prefixes */
+  	transform: translate(-50%, -50%);
+	/*width: 50%;*/
+}
+form {
+	width: 1000px;
+	display: flex;
+}
+form input[type="text"] {
+	flex: 1;
+}
