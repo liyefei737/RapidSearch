@@ -25,7 +25,7 @@ def server_static(filename):
 	return static_file(filename, root='./static')
 
 def search_table(inputString):
-	search_result_title = "<p> Search for \"" + inputString + "\" </p>"
+	search_result_title = "<p> Searched for \"" + inputString + "\" </p>"
 
 	inputString = inputString.lower()
 	splitInput = inputString.split();
