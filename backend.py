@@ -74,7 +74,7 @@ def search_table(inputString):
 		#  from the heap. we add this word into the heap if its count is larger than the word with minimum count
 		#  from the heap.
 		# when heap has less than 20 elements: 
-	    #  we add the word and its count into the heap and heapify
+	    	#  we add the word and its count into the heap and heapify
 		if not word_in_heap:
 			if len(min_heap) < 20:
 				heappush(min_heap, [word_count_dict[word], word])
