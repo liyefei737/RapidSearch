@@ -12,23 +12,27 @@ min_heap = []
 #[(5, "apple"), ]
 @route('/')
 def search_page():
- return static_file('frontend.html', root='./static')
+	inputString = request.query.keywords
+
+	if inputString == "":
+		return static_file('frontend.html', root='./static')
+	else:
+		return search_table(inputString)
+
 
 @route('/static/<filename>')
 def server_static(filename):
 	return static_file(filename, root='./static')
 
-@post('/')
-def search_table():
-	inputString = request.forms.get("searchBox")
-
+def search_table(inputString):
 	search_result_title = "<p> Search for \"" + inputString + "\" </p>"
 
 	inputString = inputString.lower()
 	splitInput = inputString.split();
 
 
-
+	#The following creates a dictionary that stores the count of the occurences
+	#of each word IN THE ORDER in which they appear
 	occurence_dict = collections.OrderedDict()
 	for word in splitInput:
 		if word in occurence_dict:
@@ -40,10 +44,10 @@ def search_table():
 
 
 	#Construct the occurence table
-	occurence_table = "<table id='search_string_occurence'> <tr><th>Word</th><th><Count</th></tr>"
+	occurence_table = "<table border='1' style='width: 200px' id='search_string_occurence'><caption> Words and Their Occurences in the Search String </caption> <thead><tr><th>Word</th><th>Count</th></tr></thead>"
 	for word in occurence_dict:
-		occurence_table += "<tr> <td>" + word + "</td> <td>" + str(occurence_dict[word]) + "<td> </tr>"
-	occurence_table += "</table>"
+		occurence_table += "<tr> <td align='center'>" + word + "</td> <td align='center'>" + str(occurence_dict[word]) + "</td> </tr>"
+	occurence_table += "</table><br>"
 
 	#count the words in a dictionary and put it in the min heap if it's top 20
 	for word in splitInput:
@@ -76,29 +80,12 @@ def search_table():
 	copy_heap = sorted(list(min_heap))
 
 	#construct html to return
-	top_twenty = "<h4> Top 20 Search Words </h4><table id='top_twenty'> <tr><th>Word</th><th><Count</th></tr>"
+	top_twenty = "<table border='1' style='width: 200px'id='top_twenty'><caption> History Top 20 Search Words </caption> <thead><tr><th>Word</th><th>Count</th></tr><thead>"
 	for count, w in reversed(copy_heap):
-		top_twenty += "<tr> <td>" + w + "</td> <td>" + str(count) + "<td> </tr>"
+		top_twenty += "<tr> <td align='center'>" + w + "</td> <td align='center' >" + str(count) + "</td> </tr>"
 	top_twenty += "</table>"
 
 			
 	return search_result_title + occurence_table + top_twenty
-
-@get('/login') # or @route('/login')
-def login():
-	return '''
-		<form action="/login" method="post">
-			Username: <input name="username" type="text" />
-			Password: <input name="password" type="password" />
-			<input value="Login" type="submit" />
-		</form>
-		
-		'''
-
-@post('/login') # or @route('/login', method='POST')
-def do_login():
-	username = request.forms.get('username')
-	password = request.forms.get('password')
-	return "<p>" + username + "</p>"
 
 run(host='localhost', port=8080, debug=True)
