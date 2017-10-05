@@ -2,14 +2,17 @@ from bottle import get, post, route, run, request
 from bottle import static_file
 from heapq import *
 import collections
-#global data structures
 
+'''
+The following data structures lives as long as the server
+'''
+# used to store all counts for each word appeared in the search query
 word_count_dict = {}
 
+#min heap of size 20, used to store the top 20 searched words in the form of [(word_count, word)...]
 min_heap = []
 
 
-#[(5, "apple"), ]
 @route('/')
 def search_page():
 	inputString = request.query.keywords
@@ -43,41 +46,46 @@ def search_table(inputString):
 			print occurence_dict
 
 
-	#Construct the occurence table
+	#construct the query word and its occurance occurence table
 	occurence_table = "<table border='1' style='width: 200px' id='search_string_occurence'><caption> Words and Their Occurences in the Search String </caption> <thead><tr><th>Word</th><th>Count</th></tr></thead>"
 	for word in occurence_dict:
 		occurence_table += "<tr> <td align='center'>" + word + "</td> <td align='center'>" + str(occurence_dict[word]) + "</td> </tr>"
 	occurence_table += "</table><br>"
 
-	#count the words in a dictionary and put it in the min heap if it's top 20
+	#increment the count for each word in the word_count_dict
 	for word in splitInput:
 		if word in word_count_dict:
 			word_count_dict[word] += 1
 		else:
 			word_count_dict[word] = 1
 		
-		word_in_heap = False #flag to see if the word is already in the heap
+		word_in_heap = False
 
-		#check to see if the word is already in the heap
+		#check to see if the word is already in the heap, if it's update the count
 		for i in range(0, len(min_heap)):
 			if min_heap[i][1] == word:
 				min_heap[i][0] = min_heap[i][0] + 1
 				word_in_heap = True
-			
-		heapify(min_heap)
+				heapify(min_heap)
+				break
 
-		#add the word and its count into the heap if its in the top 20; if heap less than 20 entries, then insert it automatically
+		# when heap is full:
+		#  if this word is not in the heap, we compare the count of this word with the word with lowest count
+		#  from the heap. we add this word into the heap if its count is larger than the word with minimum count
+		#  from the heap.
+		# when heap has less than 20 elements: 
+	    #  we add the word and its count into the heap and heapify
 		if not word_in_heap:
 			if len(min_heap) < 20:
 				heappush(min_heap, [word_count_dict[word], word])
 				heapify(min_heap)
-			elif min_heap[0][0] < word_count_dict[word]:
+			elif word_count_dict[word] > min_heap[0][0]: # note [0] element is the min of the min heap!
 				heappop(min_heap)
 				heappush(min_heap, [word_count_dict[word], word])		
 				heapify(min_heap)
 	
-	#sort the heap from max to min
-	copy_heap = sorted(list(min_heap))
+	#create a sorted copy of the heap for output
+	copy_heap = sorted(min_heap)
 
 	#construct html to return
 	top_twenty = "<table border='1' style='width: 200px'id='top_twenty'><caption> History Top 20 Search Words </caption> <thead><tr><th>Word</th><th>Count</th></tr><thead>"
