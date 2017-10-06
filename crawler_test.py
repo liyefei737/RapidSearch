@@ -11,7 +11,7 @@ class CrawlerTests(unittest.TestCase):
   def test_inverted_is_not_empty(self):
       self.assertNotEqual(self.inverted_index, {})
 
-  def test_word_appeared_more_than_once(self):
+  def test_word_appeared_in_more_than_one_websites(self):
       self.assertTrue(len(self.resolved_inverted_index['latte'])  > 1)
 
  
