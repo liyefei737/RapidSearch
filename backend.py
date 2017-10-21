@@ -6,7 +6,7 @@ import collections
 '''
 The following data structures lives as long as the server
 '''
-# used to store all counts for each word appeared in the search query
+# used to store all counts for each 	 word appeared in the search query
 word_count_dict = {}
 
 #min heap of size 20, used to store the top 20 searched words in the form of [(word_count, word)...]
