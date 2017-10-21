@@ -1,8 +1,9 @@
-.logo {
-	margin: auto;
-	top: 275px;
+
+body{
+	background-color: #1d353f;
 }
-div {
+
+.searchFunction{
 	position: fixed;
   	top: 50%;
   	left: 50%;
@@ -10,14 +11,14 @@ div {
   	transform: translate(-50%, -50%);
 	/*width: 50%;*/
 }
+img {
+	vertical-align: middle;
+	text-align: center;
+}
 form {
 	width: 1000px;
 	display: flex;
 }
 form input[type="text"] {
 	flex: 1;
-}
-
-table {
-	width: 100px;
 }
