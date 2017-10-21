@@ -4,13 +4,6 @@ from heapq import *
 import collections
 #global data structures
 
-<<<<<<< HEAD
-'''
-The following data structures lives as long as the server
-'''
-# used to store all counts for each 	 word appeared in the search query
-=======
->>>>>>> 031b0f0ffe805edbe9739beef3f6879e55c54ebe
 word_count_dict = {}
 
 min_heap = []
@@ -19,8 +12,9 @@ min_heap = []
 #[(5, "apple"), ]
 @route('/')
 def search_page():
-	inputString = request.query.keywords
+	print 'hello1'
 
+	inputString = request.query.keywords
 	if inputString == "":
 		return static_file('frontend.html', root='./static')
 	else:
@@ -93,4 +87,4 @@ def search_table(inputString):
 			
 	return search_result_title + occurence_table + top_twenty
 
-run(host='localhost', port=8080, debug=True)
+run(host='localhost', port=8081, debug=True)
