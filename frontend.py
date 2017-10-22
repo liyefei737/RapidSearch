@@ -2,7 +2,7 @@ from oauth2client.client import OAuth2WebServerFlow
 from oauth2client.client import flow_from_clientsecrets
 from apiclient.discovery import build
 from bottle import get, post, route, run, request, redirect, app, template
-from bottle import static_file, response
+from bottle import static_file, Response, response
 import bottle
 from beaker.middleware import SessionMiddleware
 from heapq import *
@@ -29,14 +29,13 @@ SCOPE = ['https://www.googleapis.com/auth/plus.me', 'https://www.googleapis.com/
 @route('/')
 def search_page():
 	s = request.environ.get('beaker.session')
-	bottle.TEMPLATES.clear()
 
 	inputString = request.query.keywords
 	if 'email' in s: #user logged in
 		logged_in = True
 
 		if inputString == "":
-			return template('frontend.tpl', loggedin=logged_in, name=s['name'])
+			return template('frontend.tpl', loggedin=logged_in, name=s['name'], email=s['email'])
 		else:
 			return search_table(inputString)
 	else:
@@ -101,9 +100,8 @@ def server_static(filename):
 def search_table(inputString):
 	bottle.TEMPLATES.clear()
 	s = request.environ.get('beaker.session')
-	request.response.set_header("Cache-Control", "no-cache, no-stoe, must-revalidate")
-	request.response.set_header("Pragma", "no-cache")
-	
+	response.set_header("Cache-Control", "no-cache, no-store, must-revalidate")
+	print response
 	
 	search_result_title = "<p> Search for \"" + inputString + "\" </p>"
 
