@@ -50,7 +50,7 @@ def login_trigger():
 
 	s = request.environ.get('beaker.session')
 	if 'email' not in s:
-		flow = flow_from_clientsecrets('./client_secret.json', scope=SCOPE, redirect_uri="http://localhost:8081/redirect")
+		flow = flow_from_clientsecrets('./client_secret.json', scope=SCOPE, redirect_uri="http://ec2-52-90-64-161.compute-1.amazonaws.com//redirect")
 		auth_uri = flow.step1_get_authorize_url()
 		redirect(str(auth_uri))
 	else:
@@ -69,7 +69,7 @@ def redirect_page():
 	flow = OAuth2WebServerFlow(client_id='619195777450-ea3m50l60rlmbo9ro0abiimmb4o9admp.apps.googleusercontent.com',
 							client_secret='SBurZL_VZPCjaLLVEKGRyD5v',
 							scope=SCOPE,
-							redirect_uri="http://localhost:8081/redirect")
+							redirect_uri="http://ec2-52-90-64-161.compute-1.amazonaws.com//redirect")
 
 	credentials = flow.step2_exchange(code)
 	token = credentials.id_token['sub']
@@ -170,4 +170,4 @@ def insert_into_dict_and_heap(user_dict, min_heap, word_list):
 				heapify(min_heap)
 	return user_dict, min_heap
 
-run(host='localhost', port=8081, debug=True, app=app)
+run(host='0.0.0.0', port=80, debug=True, app=app)
