@@ -29,7 +29,7 @@ SCOPE = ['https://www.googleapis.com/auth/plus.me', 'https://www.googleapis.com/
 @route('/')
 def search_page():
 	s = request.environ.get('beaker.session')
-
+	response.set_header("Cache-Control", "no-cache, no-store, must-revalidate")
 	inputString = request.query.keywords
 	if 'email' in s: #user logged in
 		logged_in = True
