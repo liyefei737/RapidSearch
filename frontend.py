@@ -1,12 +1,14 @@
 from oauth2client.client import OAuth2WebServerFlow
 from oauth2client.client import flow_from_clientsecrets
 from apiclient.discovery import build
-from bottle import get, post, route, run, request, redirect
-from bottle import static_file
+from bottle import get, post, route, run, request, redirect, app, template
+from bottle import static_file, response
+import bottle
 from beaker.middleware import SessionMiddleware
 from heapq import *
 import collections
 import httplib2
+import Queue
 #global data structures
 session_opts = {
     'session.type': 'file',
@@ -14,30 +16,52 @@ session_opts = {
     'session.data_dir': './data',
     'session.auto': True
 }
-app = SessionMiddleware(bottle.app(), session_opts)
+app = SessionMiddleware(app(), session_opts)
 
-word_count_dict = {}
+user_most_recent_dict = {}
+user_history_dict = {}
+user_history_heap = {}
 
-min_heap = []
+user_most_recent_dict = {}
 
 SCOPE = ['https://www.googleapis.com/auth/plus.me', 'https://www.googleapis.com/auth/userinfo.email']
 
-#[(5, "apple"), ]
 @route('/')
 def search_page():
+	s = request.environ.get('beaker.session')
+	bottle.TEMPLATES.clear()
+
 	inputString = request.query.keywords
-	if inputString == "":
-		return static_file('frontend.html', root='./static')
+	if 'email' in s: #user logged in
+		logged_in = True
+
+		if inputString == "":
+			return template('frontend.tpl', loggedin=logged_in, name=s['name'])
+		else:
+			return search_table(inputString)
 	else:
-		return search_table(inputString)
+		if inputString == "":
+			return template('frontend.tpl', loggedin=False)
+		else:
+			return search_table(inputString)
 
 
 @route('/login')
 def login_trigger():
-	flow = flow_from_clientsecrets('./client_secret.json', scope=SCOPE, redirect_uri="http://localhost:8081/redirect")
-	auth_uri = flow.step1_get_authorize_url()
 
-	redirect(str(auth_uri))
+	s = request.environ.get('beaker.session')
+	if 'email' not in s:
+		flow = flow_from_clientsecrets('./client_secret.json', scope=SCOPE, redirect_uri="http://localhost:8081/redirect")
+		auth_uri = flow.step1_get_authorize_url()
+		redirect(str(auth_uri))
+	else:
+		redirect(str('/'))
+
+@route('/logout')
+def logout_trigger():
+	session = request.environ.get('beaker.session')
+	session.delete()
+	redirect(str("/"))
 
 @route('/redirect')
 def redirect_page():
@@ -55,19 +79,36 @@ def redirect_page():
 
 	users_service = build('oauth2', 'v2', http=http)
 	user_document = users_service.userinfo().get().execute()
-	print user_document
 	user_email = user_document['email']
-	print user_email
+	print user_document
+
+	session = request.environ.get('beaker.session')
+	session['email'] = user_email
+	session['name'] = user_document['given_name']
+	session['picture'] = user_document['picture']
+	session['logged_in'] = True
+	session.save()
+	redirect(str('/'))
+
+	
+
+
 
 @route('/static/<filename>')
 def server_static(filename):
 	return static_file(filename, root='./static')
 
 def search_table(inputString):
+	bottle.TEMPLATES.clear()
+	s = request.environ.get('beaker.session')
+	request.response.set_header("Cache-Control", "no-cache, no-stoe, must-revalidate")
+	request.response.set_header("Pragma", "no-cache")
+	
+	
 	search_result_title = "<p> Search for \"" + inputString + "\" </p>"
 
-	inputString = inputString.lower()
-	splitInput = inputString.split();
+	inputStringLower = inputString.lower()
+	splitInput = inputStringLower.split();
 
 
 	#The following creates a dictionary that stores the count of the occurences
@@ -79,20 +120,37 @@ def search_table(inputString):
 		else:
 			occurence_dict[word] = 1
 
-
-	#Construct the occurence table
-	occurence_table = "<table border='1' style='width: 200px' id='search_string_occurence'><caption> Words and Their Occurences in the Search String </caption> <thead><tr><th>Word</th><th>Count</th></tr></thead>"
-	for word in occurence_dict:
-		occurence_table += "<tr> <td align='center'>" + word + "</td> <td align='center'>" + str(occurence_dict[word]) + "</td> </tr>"
-	occurence_table += "</table><br>"
-
-	#count the words in a dictionary and put it in the min heap if it's top 20
-	for word in splitInput:
-		if word in word_count_dict:
-			word_count_dict[word] += 1
-		else:
-			word_count_dict[word] = 1
 		
+	if 'logged_in' not in s:
+		return template('results.tpl', logged_in=False,inputString=inputStringLower, splitInput=splitInput, occurence_dict=occurence_dict)
+	#count the words in a dictionary and put it in the min heap if it's top 20
+
+	name = s['name']
+	email = s['email']
+	if email not in user_history_dict and email not in user_history_heap and email not in user_most_recent_dict:
+		user_history_dict[email] = {}
+		user_history_heap[email] = []
+		user_most_recent_dict[email] = []
+
+	if len(user_most_recent_dict[email]) < 10:
+		user_most_recent_dict[email].append(inputString)
+	else:
+		user_most_recent_dict[email].pop(0)
+		user_most_recent_dict[email].append(inputString)
+
+	user_history_dict[s['email']], user_history_heap[s['email']] = insert_into_dict_and_heap(user_history_dict[s['email']], user_history_heap[s['email']], splitInput)
+	copy_heap = sorted(list(user_history_heap[s['email']]))
+	reversed_copy_heap = reversed(copy_heap)
+
+	return template('results.tpl', logged_in=True, name=name, inputString=inputStringLower, splitInput=splitInput, occurence_dict=occurence_dict, reversed_copy_heap=reversed_copy_heap, queue=user_most_recent_dict[email])
+
+def insert_into_dict_and_heap(user_dict, min_heap, word_list):
+	for word in word_list:
+		if word in user_dict:
+			user_dict[word] += 1
+		else:
+			user_dict[word] = 1
+
 		word_in_heap = False #flag to see if the word is already in the heap
 
 		#check to see if the word is already in the heap
@@ -106,23 +164,12 @@ def search_table(inputString):
 		#add the word and its count into the heap if its in the top 20; if heap less than 20 entries, then insert it automatically
 		if not word_in_heap:
 			if len(min_heap) < 20:
-				heappush(min_heap, [word_count_dict[word], word])
+				heappush(min_heap, [user_dict[word], word])
 				heapify(min_heap)
-			elif min_heap[0][0] < word_count_dict[word]:
+			elif min_heap[0][0] < user_dict[word]:
 				heappop(min_heap)
-				heappush(min_heap, [word_count_dict[word], word])		
+				heappush(min_heap, [user_dict[word], word])		
 				heapify(min_heap)
-	
-	#sort the heap from max to min
-	copy_heap = sorted(list(min_heap))
-
-	#construct html to return
-	top_twenty = "<table border='1' style='width: 200px'id='top_twenty'><caption> History Top 20 Search Words </caption> <thead><tr><th>Word</th><th>Count</th></tr><thead>"
-	for count, w in reversed(copy_heap):
-		top_twenty += "<tr> <td align='center'>" + w + "</td> <td align='center' >" + str(count) + "</td> </tr>"
-	top_twenty += "</table>"
-
-			
-	return search_result_title + occurence_table + top_twenty
+	return user_dict, min_heap
 
 run(host='localhost', port=8081, debug=True, app=app)
