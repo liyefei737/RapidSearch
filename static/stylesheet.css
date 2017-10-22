@@ -3,20 +3,24 @@ body{
 	background-color: #1d353f;
 }
 
+img {
+	position: fixed;
+  	top: 40%;
+  	left: 50%;
+  	/* bring your own prefixes */
+  	transform: translate(-50%, -80%);
+	/*width: 50%;*/
+}
 .searchFunction{
 	position: fixed;
-  	top: 50%;
+  	top: 55%;
   	left: 50%;
   	/* bring your own prefixes */
   	transform: translate(-50%, -50%);
-	/*width: 50%;*/
-}
-img {
-	vertical-align: middle;
-	text-align: center;
+	width: 50%;
 }
 form {
-	width: 1000px;
+	width: 100%;
 	display: flex;
 }
 form input[type="text"] {
