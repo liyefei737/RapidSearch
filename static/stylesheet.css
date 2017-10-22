@@ -1,13 +1,9 @@
-<<<<<<< HEAD
 
 body{
 	background-color: #1d353f;
 }
 
 .searchFunction{
-=======
-div {
->>>>>>> e3d4ae918ef516879dd85f90418c677982615575
 	position: fixed;
   	top: 50%;
   	left: 50%;
@@ -26,16 +22,3 @@ form {
 form input[type="text"] {
 	flex: 1;
 }
-<<<<<<< HEAD
-=======
-
-table {
-	width: 100px;
-}
-
-.logo {
-	top: 200px;
-	margin: auto;
-    
-}
->>>>>>> e3d4ae918ef516879dd85f90418c677982615575
