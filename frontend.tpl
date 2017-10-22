@@ -25,11 +25,13 @@
 		</div>
 		%if loggedin and name:
 			<div>
-				<h1> Welcome {{name}}!</h1>
+				<h1 style="color:white;"> Welcome {{name}}!</h1>
+				<p style="color:white;">{{email}}</p>
 			</div>
 		%elif loggedin:
 			<div>
-				<h1> Welcome!</h1>
+				<h1 style="color:white;"> Welcome!</h1>
+				<p style="color:white;">{{email}}</p>
 			</div>
 		%end
 	</body>
