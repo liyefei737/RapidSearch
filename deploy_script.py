@@ -1,10 +1,10 @@
 #AWS deployment script
 import boto.ec2
 
-***REMOVED*** = "AKIAI76KB5WQP3434LHQ"
-SECRET***REMOVED*** = "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"
+ACCESSKEY = "AKIAI76KB5WQP3434LHQ"
+SECRETACCESSKEY = "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"
 
-ec2 = boto.ec2.connect_to_region("us-east-1", aws_access_key_id=***REMOVED***,aws_secret_access_key=SECRET***REMOVED***)
+ec2 = boto.ec2.connect_to_region("us-east-1", aws_access_key_id=ACCESSKEY,aws_secret_access_key=SECRETACCESSKEY)
 keypair_us_east_1 = ec2.create_key_pair("keypair-us-east-1")
 
 #save the keypair's .pem file in the current directory
