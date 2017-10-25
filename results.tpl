@@ -22,7 +22,7 @@
  					<th>Count</th>
  				</tr>
  			</thead>
- 			%for word in splitInput:
+ 			%for word in occurence_dict:
  			<tr>
  				<td align='center'>{{word}} </td> 
  				<td align='center'>{{occurence_dict[word]}}</td> 
