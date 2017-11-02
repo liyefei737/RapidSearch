@@ -3,6 +3,10 @@ import urlparse
 from BeautifulSoup import *
 from collections import defaultdict
 import re
+import numpy as np
+import pprint
+from pymongo import *
+import pickle
 
 def attr(elem, attr):
     """An html attribute from an html element. E.g. <a href="">, then
@@ -29,16 +33,19 @@ class crawler(object):
         self._url_queue = [ ]   
         
         # doc to docID map
-        self._doc_id_cache = { } 
+        self._url_to_doc_id = { } 
         
         # word to wordID map
-        self._word_id_cache = { }
+        self.lexicon = { }
 
         # map a doc_id to a url 
         self._doc_id_to_url = {}
         
         # map a word id to a word
         self._word_id_to_word = {}
+
+        #set of tuples (doc_id_from, doc_id_dst)
+        self._links = set()
 
         """
             DOCUMENT INDEX
@@ -134,6 +141,7 @@ class crawler(object):
         
         # make the crawler automatically craw when we create an instance
         self.crawl(depth=1)
+        self.save_to_db()
     
     # TODO remove me in real version
     def _mock_insert_document(self, url):
@@ -153,8 +161,8 @@ class crawler(object):
     
     def word_id(self, word):
         """Get the word id of some specific word."""
-        if word in self._word_id_cache:
-            return self._word_id_cache[word]
+        if word in self.lexicon:
+            return self.lexicon[word]
         
         # TODO: 1) add the word to the lexicon, if that fails, then the
         #          word is in the lexicon
@@ -162,20 +170,20 @@ class crawler(object):
         #          store it in the word id cache, and return the id.
 
         word_id = self._mock_insert_word(word)
-        self._word_id_cache[word] = word_id
+        self.lexicon[word] = word_id
         return word_id
     
     def document_id(self, url):
         """Get the document id for some url."""
-        if url in self._doc_id_cache:
-            return self._doc_id_cache[url]
+        if url in self._url_to_doc_id:
+            return self._url_to_doc_id[url]
         
         # TODO: just like word id cache, but for documents. if the document
         #       doesn't exist in the db then only insert the url and leave
         #       the rest to their defaults.
         
         doc_id = self._mock_insert_document(url)
-        self._doc_id_cache[url] = doc_id
+        self._url_to_doc_id[url] = doc_id
         self._doc_id_to_url[doc_id] = url
         return doc_id
     
@@ -219,6 +227,7 @@ class crawler(object):
         
         # add a link entry into the database from the current document to the
         # other document
+        self._links.add((self._curr_doc_id, self.document_id(dest_url)))
         self.add_link(self._curr_doc_id, self.document_id(dest_url))
 
         # TODO add title/alt/text to index for destination url
@@ -315,10 +324,11 @@ class crawler(object):
                 stack.append(tag)
 
             # text (text, cdata, comments, etc.)
+
             else:
                 self._add_text(tag)
 
-    def crawl(self, depth=2, timeout=3):
+    def crawl(self, depth=1, timeout=3):
         """Crawl the web!"""
         seen = set()
 
@@ -330,9 +340,10 @@ class crawler(object):
             if depth_ > depth:
                 continue
 
+            #get or create a doc_id for the next url in the queue
             doc_id = self.document_id(url)
 
-            # we've already seen this document
+            # we've already seen this document, so we skip to the next url
             if doc_id in seen:
                 continue
 
@@ -361,6 +372,7 @@ class crawler(object):
                 self._index_document(soup)
                 self._add_words_to_document()
                 #print "    url="+repr(self._curr_url)
+                #here
 
             except Exception as e:
                 print e
@@ -388,11 +400,87 @@ class crawler(object):
                resolved_inverted_index[word].add(self._doc_id_to_url[doc_id])
 
         return resolved_inverted_index
+    
+    def save_to_db(self):
+        # TODO clarify what lexicon is
+        '''
+            Things we persist to DB:
+            inverted index, lexicon, document index, PageRank scores to persistent storage
+        '''
+        client = MongoClient("localhost", 27017)
+        db = client["crawler"] #call the db crawler
+        # we save all the above items in one collection and we name this collection crawler
+        # we can think of this collection like a python dictionary where we have a field called 'type'
+        # useful type is 1 of these values ["doc_index", "inverted_index", "pg_score", "lexicon"]
+        collection = db["crawler"]
+
+        if collection.find_one({"type":"doc_index"}) is None:
+            collection.insert_one({"type":"doc_index", "value": self._doc_index})
+        else:
+            collection.replace_one({"type":"doc_index"}, {"type":"doc_index", "value": self._doc_index})
+        
+        if collection.find_one({"type":"lexicon"}) is None:
+                collection.insert_one({"type":"lexicon", "value": self.lexicon})
+        else:
+            collection.replace_one({"type":"lexicon"}, {"type":"lexicon", "value": self.lexicon})
+        
+        bson_formated_inverted_index = self.bson_format_inverted_index(self._inverted_index)
+        
+        if collection.find_one({"type":"inverted_index"}) is None:
+            collection.insert_one({"type":"inverted_index", "value": bson_formated_inverted_index})
+        else:
+            collection.replace_one({"type":"inverted_index"}, {"type":"doc_index", "value": self.bson_formated_inverted_index})
+        
+        bson_formatted_pg_score = self.bson_format_pg_scores(self.compute_page_rank(self._links))
+        
+        if collection.find_one({"type":"pg_score"}) is None:
+            collection.insert_one({"type":"pg_score", "value": bson_formatted_pg_score})
+        else:
+            collection.replace_one({"type":"pg_score"}, {"type":"doc_index", "value": self.bson_formatted_pg_score})
+        
+    def compute_page_rank(self,links, num_iterations=20, initial_pr=1.0):
+        page_rank = defaultdict(lambda: float(initial_pr))
+        num_outgoing_links = defaultdict(float)
+        incoming_link_sets = defaultdict(set)
+        incoming_links = defaultdict(lambda: np.array([]))
+        damping_factor = 0.85
+
+        # collect the number of outbound links and the set of all incoming documents
+        # for every document
+        for (from_id,to_id) in links:
+            num_outgoing_links[int(from_id)] += 1.0
+            incoming_link_sets[to_id].add(int(from_id))
+    
+        # convert each set of incoming links into a numpy array
+        for doc_id in incoming_link_sets:
+            incoming_links[doc_id] = np.array([from_doc_id for from_doc_id in incoming_link_sets[doc_id]])
+
+        num_documents = float(len(num_outgoing_links))
+        lead = (1.0 - damping_factor) / num_documents
+        partial_PR = np.vectorize(lambda doc_id: page_rank[doc_id] / num_outgoing_links[doc_id])
+        for _ in xrange(num_iterations):
+            for doc_id in num_outgoing_links:
+                tail = 0.0
+                if len(incoming_links[doc_id]):
+                    tail = damping_factor * partial_PR(incoming_links[doc_id]).sum()
+                page_rank[doc_id] = lead + tail
+    
+        return page_rank
+
+    def bson_format_inverted_index(self, inverted_index):
+        formatted = {}
+        for key in inverted_index:
+            formatted[str(key)] = list(inverted_index[key])
+        return formatted    
+
+    def bson_format_pg_scores(self, pg_scores):
+        formatted = defaultdict()
+        for key in pg_scores:
+           formatted[str(key)] =  pg_scores[key]
+        return formatted
+
 
 if __name__ == "__main__":
-    pass
-
-     
-
-
-
+    c = crawler(None, 'urls.txt')
+    #pp = pprint.PrettyPrinter()
+    #pp.pprint(c.compute_page_rank(c._links))
