@@ -6,7 +6,6 @@ import re
 import numpy as np
 import pprint
 from pymongo import *
-import pickle
 
 def attr(elem, attr):
     """An html attribute from an html element. E.g. <a href="">, then
@@ -429,14 +428,21 @@ class crawler(object):
         if collection.find_one({"type":"inverted_index"}) is None:
             collection.insert_one({"type":"inverted_index", "value": bson_formated_inverted_index})
         else:
-            collection.replace_one({"type":"inverted_index"}, {"type":"doc_index", "value": self.bson_formated_inverted_index})
+            collection.replace_one({"type":"inverted_index"}, {"type":"doc_index", "value": bson_formated_inverted_index})
         
-        bson_formatted_pg_score = self.bson_format_pg_scores(self.compute_page_rank(self._links))
+        bson_formatted_pg_score = self.bson_key_to_str(self.compute_page_rank(self._links))
         
         if collection.find_one({"type":"pg_score"}) is None:
             collection.insert_one({"type":"pg_score", "value": bson_formatted_pg_score})
         else:
-            collection.replace_one({"type":"pg_score"}, {"type":"doc_index", "value": self.bson_formatted_pg_score})
+            collection.replace_one({"type":"pg_score"}, {"type":"doc_index", "value": bson_formatted_pg_score})
+        
+        bson_formatted_doc_id_to_url = self.bson_key_to_str(self._doc_id_to_url)
+
+        if collection.find_one({"type":"doc_id_to_url"}) is None:
+                collection.insert_one({"type":"doc_id_to_url", "value": bson_formatted_doc_id_to_url})
+        else:
+            collection.replace_one({"type":"doc_id_to_url"}, {"type":"doc_id_to_url", "value": bson_formatted_doc_id_to_url})
         
     def compute_page_rank(self,links, num_iterations=20, initial_pr=1.0):
         page_rank = defaultdict(lambda: float(initial_pr))
@@ -473,10 +479,10 @@ class crawler(object):
             formatted[str(key)] = list(inverted_index[key])
         return formatted    
 
-    def bson_format_pg_scores(self, pg_scores):
+    def bson_key_to_str(self, d):
         formatted = defaultdict()
-        for key in pg_scores:
-           formatted[str(key)] =  pg_scores[key]
+        for key in d:
+           formatted[str(key)] =  d[key]
         return formatted
 
 
