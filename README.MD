@@ -1,1 +1,71 @@
-CSC326
+To Run Backend:
+    1. start mongoDB server, using this command "sudo mongod"
+    2. python run_backend_test.py to get the pretty-printed version of the page rank score generated from the links of each url in urls.txt
+
+Public URL: http://ec2-34-227-172-22.compute-1.amazonaws.com/
+
+
+Benchmark Result:
+
+We observed that the processing time per request has increased compared to Lab 2. This is because the mongoDB performs disk reads for every query string. 
+
+
+Benchmark:
+
+[ec2-user@ip-172-31-86-242 ~]$ ab -n 1000 -c 45 http://ec2-34-227-172-22.compute-1.amazonaws.com/?keywords=helloworld+foo+bar
+This is ApacheBench, Version 2.3 <$Revision: 655654 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking ec2-34-227-172-22.compute-1.amazonaws.com (be patient)
+Completed 100 requests
+Completed 200 requests
+Completed 300 requests
+Completed 400 requests
+Completed 500 requests
+Completed 600 requests
+Completed 700 requests
+Completed 800 requests
+Completed 900 requests
+Completed 1000 requests
+Finished 1000 requests
+
+
+Server Software:        WSGIServer/0.1
+Server Hostname:        ec2-34-227-172-22.compute-1.amazonaws.com
+Server Port:            80
+
+Document Path:          /?keywords=helloworld+foo+bar
+Document Length:        0 bytes
+
+Concurrency Level:      45
+Time taken for tests:   6.642 seconds
+Complete requests:      1000
+Failed requests:        0
+Write errors:           0
+Non-2xx responses:      1000
+Total transferred:      359000 bytes
+HTML transferred:       0 bytes
+Requests per second:    150.56 [#/sec] (mean)
+Time per request:       298.875 [ms] (mean)
+Time per request:       6.642 [ms] (mean, across all concurrent requests)
+Transfer rate:          52.79 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    6  71.8      0    1024
+Processing:     1   84 516.7      6    6639
+Waiting:        1   84 516.7      6    6639
+Total:          4   89 521.0      6    6641
+
+Percentage of the requests served within a certain time (ms)
+  50%      6
+  66%      6
+  75%      6
+  80%      6
+  90%      6
+  95%     15
+  98%   1653
+  99%   3344
+ 100%   6641 (longest request)
+
