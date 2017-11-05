@@ -8,6 +8,15 @@
 		<title>Results Page</title>
 	</head>
  	<body>
+ 		<div class="searchFunction">
+ 			<form action="/" method="get">
+				<input type="text" name="keywords"/>
+				<input type="submit" value="Crawl"/><br>
+			</form>
+			<form action="/">
+				<input type="submit" value="home"/>
+			</form>
+ 		</div>
  		%if logged_in and name:
  		<h1> {{name}}, here are your search results </h1>
  		%else:

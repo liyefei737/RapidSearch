@@ -10,6 +10,7 @@ import collections
 import httplib2
 import Queue
 from pymongo import *
+from math import ceil
 #global data structures
 session_opts = {
     'session.type': 'file',
@@ -40,8 +41,9 @@ lexicon = crawler_db["crawler"].find_one({"type": "lexicon"})
 inverted_index = crawler_db["crawler"].find_one({"type": "inverted_index"})
 pg_scores = crawler_db["crawler"].find_one({"type": "pg_score"})
 doc_id_to_url = crawler_db["crawler"].find_one({"type": "doc_id_to_url"})
+doc_index = crawler_db["crawler"].find_one({"type": "doc_index"})
 
-if not (lexicon and inverted_index and pg_scores and doc_id_to_url):
+if not (lexicon and inverted_index and pg_scores and doc_id_to_url and doc_index):
         print "warning: crawler data loadding is incomplete!"
 else:
         print "crawler data loaded!"
@@ -54,7 +56,7 @@ PAGE_SIZE = 5
 @route('/')
 def search_page():
     s = request.environ.get('beaker.session')
-    response.set_header("Cache-Control", "no-cache, no-store, must-revalidate")
+    #response.set_header("Cache-Control", "no-cache, no-store, must-revalidate")
     inputString = request.query.keywords
     if 'email' in s: #user logged in
         logged_in = True
@@ -62,13 +64,13 @@ def search_page():
         if inputString == "":
             return template('frontend.tpl', loggedin=logged_in, name=s['name'], email=s['email'])
         else:
-            return search_table(inputString)
+            return search_result(inputString)
     else:
         if inputString == "":
             return template('frontend.tpl', loggedin=False)
         else:
-            return search_table(inputString)
-
+        	inputString = inputString.split()
+        	redirect('/&keywords=' + inputString[0] + '&page_no=1')
 
 @route('/login')
 def login_trigger():
@@ -114,9 +116,28 @@ def redirect_page():
     session.save()
     redirect(str('/'))
 
-    
+@get('/&keywords=<keywords>&page_no=<page>')
+def search_result(keywords, page):
+	page = int(page)
+	keywords = keywords.lower()
+	URLs, length = db_query(keywords, "default", page)
+	print URLs
+	if not URLs and page == 1:
+		return template('search_results.tpl', URLs=URLs, result=False)
+	if page > ceil(float(length)/PAGE_SIZE):
+		return template('error.tpl')
 
-
+	#get the titles of each URL, need to preload it
+	titles = []
+	for url in URLs:
+		for i in range(len(doc_index["value"])):
+			if doc_index["value"][i]["url"] == url:
+				if doc_index["value"][i]["title"]:
+					titles.append(doc_index["value"][i]["title"])
+				else:
+					titles.append(url)
+	print titles
+	return template('search_results.tpl', titles=titles, URLs=URLs, result=True, keywords=keywords, page=page, length=ceil(float(length)/PAGE_SIZE))
 
 @route('/static/<filename>')
 def server_static(filename):
@@ -126,7 +147,8 @@ def search_table(inputString):
     bottle.TEMPLATES.clear()
     s = request.environ.get('beaker.session')
     response.set_header("Cache-Control", "no-cache, no-store, must-revalidate")
-    print response
+    result, num = db_query(inputString)
+    print result
     
     search_result_title = "<p> Search for \"" + inputString + "\" </p>"
 
@@ -165,6 +187,7 @@ def search_table(inputString):
     copy_heap = sorted(list(user_history_heap[s['email']]))
     reversed_copy_heap = reversed(copy_heap)
 
+
     return template('results.tpl', logged_in=True, name=name, inputString=inputStringLower, splitInput=splitInput, occurence_dict=occurence_dict, reversed_copy_heap=reversed_copy_heap, queue=user_most_recent_dict[email])
 
 def insert_into_dict_and_heap(user_dict, min_heap, word_list):
@@ -196,35 +219,37 @@ def insert_into_dict_and_heap(user_dict, min_heap, word_list):
     return user_dict, min_heap
 
 def find_urls(query_str):
-    result = []
-    if query_str not in lexicon["value"]:
-        return result
-    word_id = lexicon["value"][query_str]
-    doc_ids = inverted_index["value"][str(word_id)]
-    doc_pgscore = {}
-    for d_id in doc_ids:
-        doc_pgscore[d_id] = pg_scores["value"][str(d_id)]
+	result = []
+	if query_str not in lexicon["value"]:
+		return result
+	word_id = lexicon["value"][query_str]
+	doc_ids = inverted_index["value"][str(word_id)]
+	doc_pgscore = {}
+	for d_id in doc_ids:
+		doc_pgscore[d_id] = pg_scores["value"][str(d_id)]
     #get the urls from the sorted doc_ids based on pg_score     
-    for d_id in sorted(doc_pgscore, key=doc_pgscore.get):
-        result.append(doc_id_to_url["value"][str(d_id)])
-    print "query string is: " + query_str 
-    print result
-    return result
+	
+	for d_id in sorted(doc_pgscore, key=doc_pgscore.get):
+		result.append(doc_id_to_url["value"][str(d_id)])
+		print "query string is: " + query_str 
+	#print result
+	return result
 
 def db_query(query_str, user="default", page_num=1):
-        if page_num < 1:
-            page_num = 1
-        user_document = user_db[str(user)].find_one({"type":"search_result"})
+		if page_num < 1:
+			page_num = 1
+		user_document = user_db[str(user)].find_one({"type":"search_result"})
         #update the db if needed
-        if user_document == None:
-                user_db[str(user)].insert_one({"type":"search_result", "search_word":str(query_str), "result": find_urls(query_str)})
-        elif user_document["search_word"] != query_str:
-                user_db[str(user)].replace_one({"type":"search_result"}, {"type":"search_result", "search_word":str(query_str), "result": find_urls(query_str)})
+		if user_document == None:
+			user_db[str(user)].insert_one({"type":"search_result", "search_word":str(query_str), "result": find_urls(query_str)})
+		elif user_document["search_word"] != query_str:
+			user_db[str(user)].replace_one({"type":"search_result"}, {"type":"search_result", "search_word":str(query_str), "result": find_urls(query_str)})
         
         #get all result
-        result = user_db[str(user)].find_one({"type":"search_result"})["result"]
+		result = user_db[str(user)].find_one({"type":"search_result"})["result"]
+		result_length = len(result)
         #return the data in the page
-        return result[PAGE_SIZE*(page_num - 1): PAGE_SIZE*(page_num - 1) + PAGE_SIZE]
+		return result[PAGE_SIZE*(page_num - 1): PAGE_SIZE*(page_num - 1) + PAGE_SIZE], result_length
             
 '''
 these are some test cases, don't delete. we can use them to test db_query function
@@ -232,7 +257,7 @@ these are some test cases, don't delete. we can use them to test db_query functi
     db_query("can", "4324324")
     print db_query("10", "4324324", 2)
 '''
-run(host='0.0.0.0', port=8080, debug=True, app=app)
+run(host='0.0.0.0', port=8081, debug=True, app=app)
 
 
 
