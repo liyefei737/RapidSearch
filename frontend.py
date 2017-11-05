@@ -11,6 +11,9 @@ import httplib2
 import Queue
 from pymongo import *
 from math import ceil
+from bottle import error
+
+
 #global data structures
 session_opts = {
     'session.type': 'file',
@@ -257,14 +260,10 @@ these are some test cases, don't delete. we can use them to test db_query functi
     db_query("can", "4324324")
     print db_query("10", "4324324", 2)
 '''
+
+@error(404)
+def error404(error):
+    return template('error.tpl')
+
+
 run(host='0.0.0.0', port=8081, debug=True, app=app)
-
-
-
-# user_document = user_db[user].find_one({"type":"search_result"})
-# 	# user has not searched at all or user searches for a different word
-# if user_document == None or user_document["search_word"] != query_str:
-# 			#search,save result to db and return the first page
-# 		pass
-# else:
- # 		pass
