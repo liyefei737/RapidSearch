@@ -12,9 +12,7 @@ def deploy():
     except:
         print "Make sure you have credentials.csv in your current directory and the file has permission to be read."
         return
-    # print ACCESSKEY
-    # print SECRETACCESSKEY
-    
+
     ec2 = boto.ec2.connect_to_region("us-east-1", 
                                     aws_access_key_id=ACCESSKEY,
                                     aws_secret_access_key=SECRETACCESSKEY)
@@ -37,8 +35,6 @@ def deploy():
     sec_group.authorize('TCP', 80, 80, '0.0.0.0/0')
     sec_group.authorize('TCP', 8085, 8085, '0.0.0.0/0')
 
-	# instance = ec2.run_instances(image_id='ami-8caa1ce4', key_name=key_pair_name, security_groups=[security_group.name], instance_type='t1.micro')
-
     # run instance
     instance = ec2.run_instances(image_id='ami-8caa1ce4', key_name=key_pair_name,
                                  security_groups=[sec_group_name], 
@@ -53,8 +49,6 @@ def deploy():
     
     time.sleep(60)
 
-#    proc.call("scp -i %s.pem -o StrictHostKeyChecking=no -r Lab3-front/ ubuntu@%s:~/" % (key_pair_name, instance.ip_address), shell=True)
-#    proc.Popen(("ssh -i %s.pem ubuntu@%s sudo /bin/bash ~/Lab3-front/install_pack.sh" % (key_pair_name, instance.ip_address)).split())
     subprocess.call("scp -i %s.pem -o StrictHostKeyChecking=no deployment_env_setup.sh ubuntu@%s:~/" % (key_pair_name, address), shell=True)
     print "xx"
     subprocess.Popen(("ssh -i %s.pem ubuntu@%s /bin/bash ~/deployment_env_setup.sh" % (key_pair_name, address)).split())
