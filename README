@@ -1,9 +1,16 @@
-To Run Backend:
-    1. start mongoDB server, using this command "sudo mongod"
-    2. python run_backend_test.py to get the pretty-printed version of the page rank score generated from the links of each url in urls.txt
+To run the search engine:
+    1) run the crawler to load the data.
+        i) start your mongoDB server using this command "sudo mongod".
+        ii) run your crawler "python crawler.py".
+    2) run the search engine "python fronend.py".
+Note: please check the console log to see what the url is.
 
-Public URL: http://ec2-34-227-172-22.compute-1.amazonaws.com/
-
+To run the one click deployment script:
+    1) put your AWS credential.csv file in the project directory.
+    2) choose names for your key pair and security group by assigning names to key_pair_name and sec_group_name.
+    3) run the script by "python one_click_deploy.py"
+Note: the instance url and port number will be displayed shortly in the console, then the console will show environment setup logs.
+Note: the ip and port is shown at the top of the console when running the script. The default port is 8085.
 
 Benchmark Result:
 
