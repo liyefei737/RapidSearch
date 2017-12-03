@@ -249,12 +249,12 @@ def find_urls(query_str):
     # simply split query_str into multiple search tokens with whitespace
     query_words = [w.lower() for w in query_str.split("+")]
     result = []
+    doc_pgscore = {}
     for word in query_words:
         if word not in lexicon["value"]:
             continue
         word_id = lexicon["value"][word]
         doc_ids = inverted_index["value"][str(word_id)]
-        doc_pgscore = {}
         for d_id in doc_ids:
             doc_pgscore[d_id] = get_pg_score(d_id, URL_TEXT_MATCH_WEIGHT / len(query_words),
                                              TITLE_TEXT_MATCH_WEIGHT / len(query_words),
