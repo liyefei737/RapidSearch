@@ -50,11 +50,11 @@ def deploy():
     time.sleep(60)
 
     subprocess.call("scp -i %s.pem -o StrictHostKeyChecking=no deployment_env_setup.sh ubuntu@%s:~/" % (key_pair_name, address), shell=True)
-    print "xx"
     subprocess.Popen(("ssh -i %s.pem ubuntu@%s /bin/bash ~/deployment_env_setup.sh" % (key_pair_name, address)).split())
-    print "ss"
-    return "%s/8085" %address
-
+    
+    print "Search engine instance %s is running at %s/8085" %(instance_id, address)
+    time.sleep(1200)
+    return ("%s/8085"%address,instance_id)
 
 if __name__ == "__main__":
     deploy()
