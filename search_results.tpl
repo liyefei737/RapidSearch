@@ -73,20 +73,13 @@
 				        <li><a href="#about">ABOUT</a></li>
 				        <li><a href="#login">LOGIN</a></li>
 			      	</ul>
-			      	<form class="form-inline my-2 my-lg-0">
+			      	<form action="/" method="get" class="form-inline my-2 my-lg-0">
 				     	<input type="text" class="form-control" id="autocomplete" size="50" placeholder="Start Typing to Search" name="keywords" required/>
 				     	<button type="submit" class="btn btn-primary">Crawl!</button>
 				    </form>
    				</div>
   			</div>
 		</nav>
-<!-- 		<div class="searchFunction">
-	 			<form action="/" method="get">
-					<input type="text" name="keywords"/>
-					<input type="submit" value="Crawl"/>
-					<input type="submit" value="home"/>
-				</form>
-	 	</div> -->
 	 	%if result:
 	 	<ul>
 	 		%for url,title in zip(URLs, titles):
