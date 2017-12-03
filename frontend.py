@@ -54,6 +54,10 @@ SCOPE = ['https://www.googleapis.com/auth/plus.me', 'https://www.googleapis.com/
 # note page starting at 1 for easy-to-readness
 PAGE_SIZE = 5
 
+# weights adding to the page rank scores of the pages that match the query string
+URL_TEXT_MATCH_WEIGHT = 0.003
+TITLE_TEXT_MATCH_WEIGHT = 0.005
+
 
 @route('/')
 def search_page():
@@ -151,6 +155,11 @@ def server_static(filename):
     return static_file(filename, root='./static')
 
 
+@route('/autocomplete')
+def server_static(filename):
+    return static_file(filename, root='./static')
+
+
 def search_table(inputString):
     bottle.TEMPLATES.clear()
     s = request.environ.get('beaker.session')
@@ -161,9 +170,9 @@ def search_table(inputString):
     search_result_title = "<p> Search for \"" + inputString + "\" </p>"
 
     inputStringLower = inputString.lower()
-    splitInput = inputStringLower.split();
+    splitInput = inputStringLower.split()
 
-    # The following creates a dictionary that stores the count of the occurences
+    # The following creates a dictionary that stores the count of the occurrence
     # of each word IN THE ORDER in which they appear
     occurence_dict = collections.OrderedDict()
     for word in splitInput:
@@ -212,12 +221,13 @@ def insert_into_dict_and_heap(user_dict, min_heap, word_list):
         # check to see if the word is already in the heap
         for i in range(0, len(min_heap)):
             if min_heap[i][1] == word:
-                min_heap[i][0] = min_heap[i][0] + 1
+                min_heap[i][0] += 1
                 word_in_heap = True
 
         heapify(min_heap)
 
-        # add the word and its count into the heap if its in the top 20; if heap less than 20 entries, then insert it automatically
+        # add the word and its count into the heap if its in the top 20
+        # If heap less than 20 entries, then insert it automatically
         if not word_in_heap:
             if len(min_heap) < 20:
                 heappush(min_heap, [user_dict[word], word])
@@ -230,6 +240,7 @@ def insert_into_dict_and_heap(user_dict, min_heap, word_list):
 
 
 def find_urls(query_str):
+    pg_scores_copy = dict(pg_scores["value"])
     # simply split query_str into multiple search tokens with whitespace
     query_words = [w.lower() for w in query_str.split("+")]
     result = []
@@ -240,13 +251,38 @@ def find_urls(query_str):
         doc_ids = inverted_index["value"][str(word_id)]
         doc_pgscore = {}
         for d_id in doc_ids:
-            doc_pgscore[d_id] = pg_scores["value"][str(d_id)]
-            # get the urls from the sorted doc_ids based on pg_score
-
-        for d_id in sorted(doc_pgscore, key=doc_pgscore.get):
-            result.append(doc_id_to_url["value"][str(d_id)])
-            print "query string is: " + word
+            doc_pgscore[d_id] = get_pg_score(d_id, URL_TEXT_MATCH_WEIGHT / len(query_words),
+                                             TITLE_TEXT_MATCH_WEIGHT / len(query_words),
+                                             word, pg_scores_copy)
+    # get the urls from the sorted doc_ids based on pg_score
+    for d_id in sorted(doc_pgscore, key=doc_pgscore.get, reverse=True):
+        result.append(doc_id_to_url["value"][str(d_id)])
     return result
+
+
+# get the page rank score for a page base on the score from page rank algorithm + the increment from query word match
+# the increment is the total weight divide by the number of query words splitted from user query string
+def get_pg_score(doc_id, url_match_increment, title_match_increment, word, scores):
+    score = scores[str(doc_id)]
+    title = get_doc_title(doc_id)
+    url_text = get_url_text(doc_id)
+    score = (score + title_match_increment) if word in title.lower() else score
+    score = (score + url_match_increment) if word in url_text.lower() else score
+    return score
+
+
+def get_doc_title(doc_id):
+    for doc_info in doc_index["value"]:
+        if doc_info["id"] == doc_id:
+            return doc_info["title"]
+    return ""
+
+
+def get_url_text(doc_id):
+    for doc_info in doc_index["value"]:
+        if doc_info["id"] == doc_id:
+            return doc_info["url"]
+    return ""
 
 
 def db_query(query_str, user="default", page_num=1):
@@ -254,7 +290,7 @@ def db_query(query_str, user="default", page_num=1):
         page_num = 1
     user_document = user_db[str(user)].find_one({"type": "search_result"})
     # update the db if needed
-    if user_document == None:
+    if user_document is None:
         user_db[str(user)].insert_one(
             {"type": "search_result", "search_word": str(query_str), "result": find_urls(query_str)})
     elif user_document["search_word"] != query_str:
@@ -262,19 +298,11 @@ def db_query(query_str, user="default", page_num=1):
                                        {"type": "search_result", "search_word": str(query_str),
                                         "result": find_urls(query_str)})
 
-        # get all result
+    # get all result
     result = user_db[str(user)].find_one({"type": "search_result"})["result"]
     result_length = len(result)
     # return the data in the page
     return result[PAGE_SIZE * (page_num - 1): PAGE_SIZE * (page_num - 1) + PAGE_SIZE], result_length
-
-
-'''
-these are some test cases, don't delete. we can use them to test db_query function
-    #db_query("10", "4324324")
-    db_query("can", "4324324")
-    print db_query("10", "4324324", 2)
-'''
 
 
 @error(404)
