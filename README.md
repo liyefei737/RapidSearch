@@ -9,8 +9,11 @@ _To run the one click deployment script:_
 1) put your AWS credential.csv file in the project directory.
 2) choose names for your key pair and security group by assigning names to key_pair_name and sec_group_name.
 3) run the script by "python one_click_deploy.py"
+
 *Note*: the instance url and port number will be displayed shortly in the console, then the console will show environment setup logs.
+
 *Note*: the ip and port is shown at the top of the console when running the script. The default port is 8085.
+
 *NOTE*: PLEASE BE PATIENT WHEN RUNING THE ONE CLICK DEPLOYMENT, IT MIGHT TAKE AROUND 10 MINS DUE TO INSTALLING 
                 NUMPY PACKAGE IS REALLY REALLY TIME CONSUMMING!!!
 
