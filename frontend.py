@@ -12,6 +12,7 @@ import Queue
 from pymongo import *
 from math import ceil
 from bottle import error
+import json
 
 
 #global data structures
@@ -51,6 +52,8 @@ if not (lexicon and inverted_index and pg_scores and doc_id_to_url and doc_index
 else:
         print "crawler data loaded!"
 
+with open("lexicon.json", 'wb') as outfile:
+    json.dump(list(lexicon["value"].keys()), outfile)
 SCOPE = ['https://www.googleapis.com/auth/plus.me', 'https://www.googleapis.com/auth/userinfo.email']
 
 #note page starting at 1 for easy-to-readness
@@ -61,6 +64,7 @@ def search_page():
     s = request.environ.get('beaker.session')
     #response.set_header("Cache-Control", "no-cache, no-store, must-revalidate")
     inputString = request.query.keywords
+    print inputString
     if 'email' in s: #user logged in
         logged_in = True
 
@@ -72,15 +76,19 @@ def search_page():
         if inputString == "":
             return template('frontend.tpl', loggedin=False)
         else:
-        	inputString = inputString.split()
-        	redirect('/&keywords=' + inputString[0] + '&page_no=1')
+            inputString = inputString.split()
+            redirect('/&keywords=' + inputString[0] + '&page_no=1')
+
+@get('/lexicon.json')
+def autocomplete():
+    return static_file("lexicon.json", root="./")
 
 @route('/login')
 def login_trigger():
 
     s = request.environ.get('beaker.session')
     if 'email' not in s:
-        flow = flow_from_clientsecrets('./client_secret.json', scope=SCOPE, redirect_uri="http://ec2-52-90-64-161.compute-1.amazonaws.com//redirect")
+        flow = flow_from_clientsecrets('./client_secret.json', scope=SCOPE, redirect_uri="http://localhost:8081/redirect")
         auth_uri = flow.step1_get_authorize_url()
         redirect(str(auth_uri))
     else:
@@ -99,7 +107,7 @@ def redirect_page():
     flow = OAuth2WebServerFlow(client_id='619195777450-ea3m50l60rlmbo9ro0abiimmb4o9admp.apps.googleusercontent.com',
                             client_secret='SBurZL_VZPCjaLLVEKGRyD5v',
                             scope=SCOPE,
-                            redirect_uri="http://ec2-52-90-64-161.compute-1.amazonaws.com//redirect")
+                            redirect_uri="http://localhost:8081/redirect")
 
     credentials = flow.step2_exchange(code)
     token = credentials.id_token['sub']
@@ -139,7 +147,6 @@ def search_result(keywords, page):
 					titles.append(doc_index["value"][i]["title"])
 				else:
 					titles.append(url)
-	print titles
 	return template('search_results.tpl', titles=titles, URLs=URLs, result=True, keywords=keywords, page=page, length=ceil(float(length)/PAGE_SIZE))
 
 @route('/static/<filename>')
