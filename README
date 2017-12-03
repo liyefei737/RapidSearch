@@ -7,7 +7,7 @@ Public URL: http://ec2-34-227-172-22.compute-1.amazonaws.com/
 
 Benchmark Result:
 
-We observed that the processing time per request has increased compared to Lab 2. This is because the mongoDB performs disk reads for every query string. 
+We observed that the processing time per request has increased compared to Lab 2. This is because the mongoDB performs disk reads for every query string.
 
 
 Benchmark:
