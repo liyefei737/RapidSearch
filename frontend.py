@@ -8,7 +8,6 @@ from beaker.middleware import SessionMiddleware
 from heapq import *
 import collections
 import httplib2
-import Queue
 from pymongo import *
 from math import ceil
 from bottle import error
@@ -66,24 +65,26 @@ TITLE_TEXT_MATCH_WEIGHT = 0.5
 def search_page():
     s = request.environ.get('beaker.session')
     # response.set_header("Cache-Control", "no-cache, no-store, must-revalidate")
-    inputString = request.query.keywords
-    if 'email' in s: #user logged in
+    input_string = request.query.keywords
+    if 'email' in s:
+        # user logged in
         logged_in = True
 
-        if inputString == "":
+        if input_string == "":
             return template('frontend.tpl', loggedin=logged_in, name=s['name'], email=s['email'])
         else:
-            return search_result(inputString)
+            return search_result(input_string)
     else:
-        if inputString == "":
+        if input_string == "":
             return template('frontend.tpl', loggedin=False)
         else:
-            redirect('/&keywords=' + "+".join(inputString.split()) + '&page_no=1')
+            redirect('/&keywords=' + "+".join(input_string.split()) + '&page_no=1')
+
 
 @get('/lexicon.json')
 def autocomplete():
     return static_file("lexicon.json", root="./")
-            
+
 
 @route('/login')
 def login_trigger():
@@ -109,12 +110,11 @@ def redirect_page():
     code = request.query.get('code', '')
 
     flow = OAuth2WebServerFlow(client_id='619195777450-ea3m50l60rlmbo9ro0abiimmb4o9admp.apps.googleusercontent.com',
-                            client_secret='SBurZL_VZPCjaLLVEKGRyD5v',
-                            scope=SCOPE,
-                            redirect_uri="http://localhost:8081/redirect")
+                               client_secret='SBurZL_VZPCjaLLVEKGRyD5v',
+                               scope=SCOPE,
+                               redirect_uri="http://localhost:8081/redirect")
 
     credentials = flow.step2_exchange(code)
-    token = credentials.id_token['sub']
     http = httplib2.Http()
     http = credentials.authorize(http)
 
@@ -134,25 +134,27 @@ def redirect_page():
 
 @get('/&keywords=<keywords>&page_no=<page>')
 def search_result(keywords, page):
-	page = int(page)
-	keywords = keywords.lower()
-	URLs, length = db_query(keywords, "default", page)
-	print URLs
-	if not URLs and page == 1:
-		return template('search_results.tpl', URLs=URLs, result=False)
-	if page > ceil(float(length)/PAGE_SIZE):
-		return template('error.tpl')
+    page = int(page)
+    keywords = keywords.lower()
+    URLs, length = db_query(keywords, "default", page)
+    print URLs
+    if not URLs and page == 1:
+        return template('search_results.tpl', URLs=URLs, result=False)
+    if page > ceil(float(length) / PAGE_SIZE):
+        return template('error.tpl')
 
-	#get the titles of each URL, need to preload it
-	titles = []
-	for url in URLs:
-		for i in range(len(doc_index["value"])):
-			if doc_index["value"][i]["url"] == url:
-				if doc_index["value"][i]["title"]:
-					titles.append(doc_index["value"][i]["title"])
-				else:
-					titles.append(url)
-	return template('search_results.tpl', titles=titles, URLs=URLs, result=True, keywords=keywords, page=page, length=ceil(float(length)/PAGE_SIZE))
+    # get the titles of each URL, need to preload it
+    titles = []
+    for url in URLs:
+        for i in range(len(doc_index["value"])):
+            if doc_index["value"][i]["url"] == url:
+                if doc_index["value"][i]["title"]:
+                    titles.append(doc_index["value"][i]["title"])
+                else:
+                    titles.append(url)
+    return template('search_results.tpl', titles=titles, URLs=URLs, result=True, keywords=keywords, page=page,
+                    length=ceil(float(length) / PAGE_SIZE))
+
 
 @route('/static/<filename>')
 def server_static(filename):
@@ -164,32 +166,30 @@ def server_static(filename):
     return static_file(filename, root='./static')
 
 
-def search_table(inputString):
+def search_table(input_string):
     bottle.TEMPLATES.clear()
     s = request.environ.get('beaker.session')
     response.set_header("Cache-Control", "no-cache, no-store, must-revalidate")
-    result, num = db_query(inputString)
+    result, num = db_query(input_string)
     print result
 
-    search_result_title = "<p> Search for \"" + inputString + "\" </p>"
-
-    inputStringLower = inputString.lower()
-    splitInput = inputStringLower.split()
+    input_string_lower = input_string.lower()
+    split_input = input_string_lower.split()
 
     # The following creates a dictionary that stores the count of the occurrence
     # of each word IN THE ORDER in which they appear
-    occurence_dict = collections.OrderedDict()
-    for word in splitInput:
-        if word in occurence_dict:
-            occurence_dict[word] += 1
+    occurrence_dict = collections.OrderedDict()
+    for word in split_input:
+        if word in occurrence_dict:
+            occurrence_dict[word] += 1
         else:
-            occurence_dict[word] = 1
+            occurrence_dict[word] = 1
 
     if 'logged_in' not in s:
-        return template('results.tpl', logged_in=False, inputString=inputStringLower, splitInput=splitInput,
-                        occurence_dict=occurence_dict)
-    # count the words in a dictionary and put it in the min heap if it's top 20
+        return template('results.tpl', logged_in=False, inputString=input_string_lower, splitInput=split_input,
+                        occurence_dict=occurrence_dict)
 
+    # count the words in a dictionary and put it in the min heap if it's top 20
     name = s['name']
     email = s['email']
     if email not in user_history_dict and email not in user_history_heap and email not in user_most_recent_dict:
@@ -198,18 +198,18 @@ def search_table(inputString):
         user_most_recent_dict[email] = []
 
     if len(user_most_recent_dict[email]) < 10:
-        user_most_recent_dict[email].append(inputString)
+        user_most_recent_dict[email].append(input_string)
     else:
         user_most_recent_dict[email].pop(0)
-        user_most_recent_dict[email].append(inputString)
+        user_most_recent_dict[email].append(input_string)
 
     user_history_dict[s['email']], user_history_heap[s['email']] = insert_into_dict_and_heap(
-        user_history_dict[s['email']], user_history_heap[s['email']], splitInput)
+        user_history_dict[s['email']], user_history_heap[s['email']], split_input)
     copy_heap = sorted(list(user_history_heap[s['email']]))
     reversed_copy_heap = reversed(copy_heap)
 
-    return template('results.tpl', logged_in=True, name=name, inputString=inputStringLower, splitInput=splitInput,
-                    occurence_dict=occurence_dict, reversed_copy_heap=reversed_copy_heap,
+    return template('results.tpl', logged_in=True, name=name, inputString=input_string_lower, splitInput=split_input,
+                    occurence_dict=occurrence_dict, reversed_copy_heap=reversed_copy_heap,
                     queue=user_most_recent_dict[email])
 
 
@@ -220,7 +220,8 @@ def insert_into_dict_and_heap(user_dict, min_heap, word_list):
         else:
             user_dict[word] = 1
 
-        word_in_heap = False  # flag to see if the word is already in the heap
+        # flag to see if the word is already in the heap
+        word_in_heap = False
 
         # check to see if the word is already in the heap
         for i in range(0, len(min_heap)):

@@ -21,13 +21,13 @@ def deploy():
     
     # create a new keypair with name specified by key_pair_name
     # store the pem file in the current directory
-    key_pair_name = "keypair19"
+    key_pair_name = "keypair21"
     ec2.create_key_pair(key_pair_name).save(".")
     os.system("chmod 400 %s.pem"%key_pair_name)
     
     # create a new security group with name specified by sec_group_name
     # store the pem file in the current directory
-    sec_group_name = "group18"
+    sec_group_name = "group20"
     sec_group_descp = "group name: %s"%sec_group_name
     sec_group = ec2.create_security_group(sec_group_name, sec_group_descp)
 
