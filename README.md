@@ -25,27 +25,9 @@ _To run the one click deployment script:_
 
 Benchmark Result:
 
-We observed that the processing time per request has increased compared to Lab 2. This is because the mongoDB performs disk reads for every query string.
-
-Benchmark:
-
 [ec2-user@ip-172-31-86-242 ~]$ ab -n 1000 -c 45 http://ec2-34-227-172-22.compute-1.amazonaws.com/?keywords=helloworld+foo+bar
-This is ApacheBench, Version 2.3 <$Revision: 655654 $>
-Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
-Licensed to The Apache Software Foundation, http://www.apache.org/
 
-Benchmarking ec2-34-227-172-22.compute-1.amazonaws.com (be patient)
-Completed 100 requests
-Completed 200 requests
-Completed 300 requests
-Completed 400 requests
-Completed 500 requests
-Completed 600 requests
-Completed 700 requests
-Completed 800 requests
-Completed 900 requests
-Completed 1000 requests
-Finished 1000 requests
+This is ApacheBench, Version 2.3
 
 Server Software:        WSGIServer/0.1
 Server Hostname:        ec2-34-227-172-22.compute-1.amazonaws.com
