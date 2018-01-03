@@ -1,4 +1,4 @@
-***A crawler-based search Engine Using Improved Pagerank Alogrithm***
+***A crawler-based search engine using improved Pagerank Algorithm***
 ------
 Tech Stack: Python 2.7, MongoDB, Javascript, HTML, CSS, Bootstrap CSS, AWS, JQuery  
 
