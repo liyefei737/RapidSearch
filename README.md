@@ -1,3 +1,9 @@
+***A crawler-based search Engine Using Improved Pagerank Alogrithm***
+------
+Tech Stack: Python 2.7, MongoDB, Javascript, HTML, CSS, Bootstrap CSS, AWS, JQuery  
+
+Important libraries used: Beautifulsoup(web cralwer),   Bottle(server), Beaker(AWS deployment)
+
 _To run the search engine:_
 1) run the crawler to load the data.
 i) start your mongoDB server using this command "sudo mongod".
